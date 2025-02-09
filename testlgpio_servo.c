@@ -3,18 +3,34 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
+
+//TODO: add making terminal normal again when errors occur
 //defines
 #define SERVO_PIN 17
 #define PWM_FREQ 50 //Hz
-#define MIN_PULSE 500 //0deg
-#define MAX_PULSE 2500 //180deg
+#define MIN_PULSE 900 //0deg
+#define MAX_PULSE 2100 //180deg
 #define PERIOD 20000 //20ms
 
 int calculate_pulse_width(int *angle)
 {
-    return MIN_PULSE + (*angle * (MAX_PULSE - MIN_PULSE) / 180);
-} 
+    return MIN_PULSE + (*angle * (MAX_PULSE - MIN_PULSE) / 120);
+}
+
+//returns true on failure
+bool servo_set_position(int* chip_handle, int* angle)
+{
+    printf("%d", calculate_pulse_width(angle));
+    if (lgTxServo(*chip_handle, SERVO_PIN, calculate_pulse_width(angle), PWM_FREQ, 0, 10) < 0) 
+    {
+        fprintf(stderr, "Failed to set Servo position\n");
+        lgGpiochipClose(*chip_handle);
+        return true;
+    }
+    return false;
+}
 
 int main(void)
 {
@@ -29,7 +45,7 @@ int main(void)
         return -1;
     }
 
-    servo_gpio_handle = lgGpioClaimOutput(lgpio_chip, GPIO_V2_LINE_FLAG_OPEN_DRAIN, SERVO_PIN, 0); //initialized low
+    servo_gpio_handle = lgGpioClaimOutput(lgpio_chip, 0, SERVO_PIN, 0); //initialized low
     if (servo_gpio_handle < 0)
     {
         printf("Error claiming gpio pin\n");
@@ -51,15 +67,20 @@ int main(void)
 
     //main loop
     char c;
-    int angle = 90;
+    int angle;
+
     for(;;)
     {
         //close on q press
         c = getchar();
         if (c == 'q') break;
-        printf("pulse width for %d = %d\n", angle, calculate_pulse_width(&angle));
-        angle = (angle + 20) % 180;
-        usleep(100000);
+
+        angle = 0;
+        if (servo_set_position(&lgpio_chip, &angle)) return -1;
+        sleep(2);
+        angle = 120;
+        if (servo_set_position(&lgpio_chip, &angle)) return -1;
+        sleep(2);
     }
 
     //on close
