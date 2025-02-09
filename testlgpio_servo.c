@@ -22,7 +22,6 @@ int calculate_pulse_width(int *angle)
 //returns true on failure
 bool servo_set_position(int* chip_handle, int* angle)
 {
-    printf("%d", calculate_pulse_width(angle));
     if (lgTxServo(*chip_handle, SERVO_PIN, calculate_pulse_width(angle), PWM_FREQ, 0, 10) < 0) 
     {
         fprintf(stderr, "Failed to set Servo position\n");
@@ -30,6 +29,12 @@ bool servo_set_position(int* chip_handle, int* angle)
         return true;
     }
     return false;
+}
+
+void terminal_return(struct termios* old, int* flags)
+{
+    tcsetattr(STDIN_FILENO, TCSANOW, old);
+    fcntl(STDIN_FILENO, F_SETFL, *flags & ~O_NONBLOCK);
 }
 
 int main(void)
@@ -76,17 +81,24 @@ int main(void)
         if (c == 'q') break;
 
         angle = 0;
-        if (servo_set_position(&lgpio_chip, &angle)) return -1;
-        sleep(2);
+        if (servo_set_position(&lgpio_chip, &angle))
+        {
+            terminal_return(&old_termios, &flags);
+            return -1;
+        }
+        sleep(1);
         angle = 120;
-        if (servo_set_position(&lgpio_chip, &angle)) return -1;
-        sleep(2);
+        if (servo_set_position(&lgpio_chip, &angle))
+        {
+            terminal_return(&old_termios, &flags);
+            return -1;
+        }
+        sleep(1);
     }
 
     //on close
     //returning terminal to how it was
-    tcsetattr(STDIN_FILENO, TCSANOW, &old_termios);
-    fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
+    terminal_return(&old_termios, &flags);
 
     lgGpiochipClose(lgpio_chip);
     return 0;
