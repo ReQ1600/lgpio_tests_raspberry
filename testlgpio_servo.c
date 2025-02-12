@@ -5,8 +5,6 @@
 #include <fcntl.h>
 #include <stdbool.h>
 
-
-//TODO: add making terminal normal again when errors occur
 //defines
 #define SERVO_PIN 17
 #define PWM_FREQ 50 //Hz
