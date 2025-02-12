@@ -43,12 +43,10 @@ bool interpret_key_press(char *c, uint8_t *current_servo_pos, bool *angle_change
     switch (*c)
     {
     case 'a':
-        printf("a");
         (*current_servo_pos)-= ANGLE_INCREMENT;
         break;
     case 'd':
         (*current_servo_pos)+= ANGLE_INCREMENT;
-        printf("d");
         break;
     case 'q':
         return true;
@@ -112,7 +110,6 @@ int main(void)
         if (angle > MAX_ANGLE) angle = MAX_ANGLE;
         if (angle_changed)
         {
-            printf("chuj\n");
             if (servo_set_position(&lgpio_chip, &angle))
             {
                 terminal_return(&old_termios, &flags);
